@@ -62,6 +62,13 @@ Edit `config/auth.php`:
 ],
 ```
 
+Add default user for testing to `config/services.php`:
+```php
+'shib' => [
+    'default_user' => env('APP_USER')
+],
+```
+
 Add middleware to the `app/Http/Kernel.php`:
 ``` php
 'auth.shib' => \Dfoxx\Shibboleth\AuthenticateWithShibboleth::class,
