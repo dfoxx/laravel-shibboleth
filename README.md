@@ -1,7 +1,7 @@
 # NC State Shibboleth for Laravel
 
 This package is provide some basic guidance on setting up authentication middleware,
-custom guard, and user provider for Shibboleth in Laravel 5.4.
+custom guard, and user provider for Shibboleth in Laravel 5.4, 5.5.
 
 ## Install
 
