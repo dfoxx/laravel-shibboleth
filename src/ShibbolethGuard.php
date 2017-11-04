@@ -62,7 +62,7 @@ class ShibbolethGuard extends SessionGuard
     protected function shibbolethCredentials(Request $request, $field)
     {
         // If on local environment use .env value to mock server variable
-         if (\App::environment() == 'local') {
+         if (in_array(\App::environment(), ['local', 'testing'])) {
             $identifier = config('services.shib.default_user');
         }
 
