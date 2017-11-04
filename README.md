@@ -68,6 +68,7 @@ Add default user for testing to `config/services.php`:
     'default_user' => env('APP_USER')
 ],
 ```
+Note: Because we are using Laravel's config caching, you will need to run `php artisan config:cache` in order to reflect the change in `config/services.php`
 
 Add middleware to the `app/Http/Kernel.php`:
 ``` php
