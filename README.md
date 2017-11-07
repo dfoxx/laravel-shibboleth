@@ -1,7 +1,7 @@
 # NC State Shibboleth for Laravel
 
 This package is provide some basic guidance on setting up authentication middleware,
-custom guard, and user provider for Shibboleth in Laravel 5.4.
+custom guard, and user provider for Shibboleth in Laravel 5.4, 5.5.
 
 ## Install
 
@@ -61,6 +61,14 @@ Edit `config/auth.php`:
         ],
 ],
 ```
+
+Add default user for testing to `config/services.php`:
+```php
+'shib' => [
+    'default_user' => env('APP_USER')
+],
+```
+Note: Because we are using Laravel's config caching, you will need to run `php artisan config:cache` in order to reflect the change in `config/services.php`
 
 Add middleware to the `app/Http/Kernel.php`:
 ``` php
