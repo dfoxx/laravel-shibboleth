@@ -67,7 +67,8 @@ class ShibbolethGuard extends SessionGuard
         }
 
         if ($request->server('AUTH_TYPE') == 'shibboleth') {
-            $identifier = $request->server('SHIB_UID') ?: $request->server('REDIRECT_SHIB_UID');
+            $shibboleth_uid_keys = array_values(preg_grep('/^(.+)?SHIB_UID$/', array_keys($request->server())));
+            if (count($shibboleth_uid_keys)) $identifier = $request->server($shibboleth_uid_keys[0]);
         }
 
         return [$field => $identifier, 'auth_type' => 'shibboleth'];
