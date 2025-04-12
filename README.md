@@ -19,23 +19,35 @@ An opinionated Shibboleth authentication package for Laravel. There is a middlew
 composer require dfoxx/laravel-shibboleth
 ```
 
+**REQUIRED** Update `public/.htaccess`:
+
+```
+<IfModule mod_shib>
+    AuthType shibboleth
+    ShibRequestSetting requireSession false
+    require shibboleth
+</IfModule>
+```
+
 ## Configuration
 
-Update your project `.env`:
-
-| `.env` key        | Description                                                                     |
-| :---------------- | :------------------------------------------------------------------------------ |
-| `APP_USER`        | Optional for local development to bypass headers and log in this user           |
-| `APP_USER_FIELD`  | Shibboleth header used to uniquely identify the user (e.g. SHIB_UID, SHIB_EPPN) |
-| `APP_USER_COLUMN` | User model column to use for authentication (e.g. uid, unity_id, username)      |
-
-Examples:
+**REQUIRED** Update your project `.env`:
 
 ```
-APP_USER=dfsterli
-APP_USER_FIELD=SHIB_UID
-APP_USER_COLUMN=unity_id
+SHIB_USER=dfsterli
+SHIB_MIDDLEWARE=shibboleth
+SHIB_AUTO_CREATE_USERS=false
+SHIB_SERVER_KEY=SHIB_UID
+SHIB_IDENTIFIER_KEY=unity_id
 ```
+
+| `.env` key               | Description                                                                     |
+| :----------------------- | :------------------------------------------------------------------------------ |
+| `SHIB_USER`              | Optional for local development to bypass headers and log in this user           |
+| `SHIB_MIDDLEWARE`        | Set your own custom name for the middleware                                     |
+| `SHIB_AUTO_CREATE_USERS` | Defaults to false, will not attempt to create users                             |
+| `SHIB_SERVER_KEY`        | Shibboleth header used to uniquely identify the user (e.g. SHIB_UID, SHIB_EPPN) |
+| `SHIB_IDENTIFIER_KEY`    | User model column to use for authentication (e.g. uid, unity_id, username)      |
 
 Or publish the config file `config/shibboleth.php` and edit the values you need:
 
@@ -45,7 +57,7 @@ php artisan vendor:publish --tag=laravel-shibboleth-config
 
 ## Traits
 
-You need this trait, which will use `APP_USER_COLUMN` as the column to store the Shibboleth identifier
+**REQUIRED** Update User model with this trait to use `SHIB_IDENTIFIER_KEY` as the column to store the Shibboleth identifier
 
 ```php
 use Dfoxx\Shibboleth\HasShibbolethIdentifier;
