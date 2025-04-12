@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 
-class AuthenticateWithShibboleth
+class Authenticate
 {
     public function handle(Request $request, Closure $next)
     {

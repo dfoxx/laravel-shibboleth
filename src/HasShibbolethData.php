@@ -13,4 +13,9 @@ trait HasShibbolethData
     {
         return $this->shibboleth?->attributes[$key] ?? $default;
     }
+
+    public function setShibbolethAttributes(array $headers)
+    {
+        //
+    }
 }

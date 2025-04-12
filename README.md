@@ -23,11 +23,13 @@ composer require dfoxx/laravel-shibboleth
 
 Update your project `.env`:
 
-```
-# APP_USER - Optional for local development/testing — bypass headers and log in this user
-# APP_USER_FIELD - The Shibboleth header used to uniquely identify the user (e.g. SHIB_UID, SHIB_EPPN)
-# APP_USER_COLUMN - The user model column to use for authentication (e.g. uid, unity_id, username)
+| `APP_USER` | Optional for local development to bypass headers and log in this user |
+| `APP_USER_FIELD` | Shibboleth header used to uniquely identify the user (e.g. SHIB_UID, SHIB_EPPN) |
+| `APP_USER_COLUMN` | User model column to use for authentication (e.g. uid, unity_id, username) |
 
+Examples:
+
+```
 APP_USER=dfsterli
 APP_USER_FIELD=SHIB_UID
 APP_USER_COLUMN=unity_id
@@ -115,76 +117,6 @@ Then protect routes:
 Route::middleware(['auth:shibboleth'])->group(function () {
     Route::get('/dashboard', fn() => view('dashboard'));
 });
-```
-
-### 💡 When to Use Which?
-
-| Feature                    | Guard (`auth:shibboleth`) | Middleware (`shibboleth.auth`)    |
-| -------------------------- | ------------------------- | --------------------------------- |
-| Laravel-native login       | ✅                        | 🚫                                |
-| Session & role integration | ✅                        | 🚫                                |
-| Quick integration          | ⚠️ setup required         | ✅ 1 line in app service provider |
-| Works without `auth.php`   | 🚫                        | ✅                                |
-| Full-featured auth app     | ✅                        | 🚫                                |
-
-## 🧬 Traits for User Model
-
-```php
-use Dfoxx\Shibboleth\{
-    HasShibbolethData,
-    HasShibbolethIdentifier,
-};
-
-class User extends Authenticatable
-{
-    use HasShibbolethData, HasShibbolethIdentifier;
-}
-```
-
-Access Shibboleth data:
-
-```php
-$user->shibbolethData->attributes['eptid'];
-$user->getShibboleth('uid');
-```
-
-## ⚙️ Configuration
-
-In `config/shibboleth.php`:
-
-```php
-'headers' => [
-    'username' => 'REMOTE_USER',
-    'email' => 'SHIB_MAIL',
-],
-
-'fields' => [
-    'uid' => 'SHIB_UID',
-    'eptid' => 'SHIB_EPTID',
-    'display_name' => 'SHIB_DISPLAYNAME',
-    'authn_method' => 'Shib-Authentication-Method',
-    // ...etc
-],
-```
-
-You can also define which fields should be promoted to columns:
-
-```php
-'promoted_fields' => ['uid', 'eptid', 'eppn', 'session_index', 'identity_provider'],
-```
-
-## 🧪 Debugging
-
-Inspect the currently authenticated user:
-
-```bash
-php artisan shibboleth:user:data
-```
-
-Or find by UID:
-
-```bash
-php artisan shibboleth:user:data --uid=dfsterli
 ```
 
 ## License
