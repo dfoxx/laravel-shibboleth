@@ -49,9 +49,9 @@ Route::middleware(['shibboleth'])->group(function () {
 });
 ```
 
-## Guard `auth:shibboleth`
+## Guard
 
-Update `config/auth.php`:
+Update `config/auth.php` to use the guard:
 
 ```php
 'guards' => [
@@ -97,7 +97,7 @@ And then access Shibboleth data:
 
 ```php
 $user->shib('eppn');
-$user->shibboleth->attributes['eppn'];
+$user->shibboleth->data['eppn'];
 ```
 
 ## Configuration

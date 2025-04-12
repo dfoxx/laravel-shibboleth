@@ -61,21 +61,19 @@ class ShibbolethGuard extends SessionGuard
             $identifier = config('shibboleth.user');
         }
 
-        if ($request->server('AUTH_TYPE') === 'shibboleth') {
-            $identifier = $request->server($identifier_key);
+        $identifier = $request->server($identifier_key);
 
-            // Fallback to auto-detecting SHIB_UID* keys if specific config fails
-            if (empty($identifier)) {
-                $pattern = '/^(.+)?' . preg_quote($identifier_key, '/') . '$/';
-                $shibboleth_uid_keys = array_values(preg_grep($pattern, array_keys($request->server())));
+        // Fallback to auto-detecting SHIB_UID* keys if specific config fails
+        if (empty($identifier)) {
+            $pattern = '/^(.+)?' . preg_quote($identifier_key, '/') . '$/';
+            $shibboleth_uid_keys = array_values(preg_grep($pattern, array_keys($request->server())));
 
-                if (count($shibboleth_uid_keys)) {
-                    $identifier = $request->server($shibboleth_uid_keys[0]);
-                }
+            if (count($shibboleth_uid_keys)) {
+                $identifier = $request->server($shibboleth_uid_keys[0]);
             }
         }
 
-        return [$identifier_key => $identifier, 'auth_type' => 'shibboleth'];
+        return [$identifier_key => $identifier];
     }
 
     protected function failedShibbolethResponse(Request $request)
