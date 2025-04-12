@@ -2,34 +2,36 @@
 
 namespace Dfoxx\Shibboleth;
 
-use Illuminate\Http\Response;
+use Illuminate\Http\Request;
 use Illuminate\Auth\SessionGuard;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Events\Dispatcher;
-use Illuminate\Contracts\Auth\StatefulGuard;
-use Symfony\Component\HttpFoundation\Request;
-use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 
 class ShibbolethGuard extends SessionGuard
 {
+    public function __construct(
+        string $name,
+        UserProvider $provider,
+        Session $session,
+        Request $request,
+        Dispatcher $events = null
+    ) {
+        parent::__construct($name, $provider, $session, $request);
 
-    /**
-     * Attempt to authenticate using Shibboleth.
-     *
-     * @param  string  $field
-     * @param  array  $extraConditions
-     * @return \Symfony\Component\HttpFoundation\Response|null
-     */
-    public function shibboleth($field = 'unity_id', $extraConditions = [])
+        if ($events) {
+            $this->setDispatcher($events);
+        }
+
+        $this->setRequest($request);
+    }
+
+    public function shibboleth($field = 'username', $extraConditions = [])
     {
         if ($this->check()) {
             return;
         }
 
-        // If a username is set on the HTTP basic request, we will return out without
-        // interrupting the request lifecycle. Otherwise, we'll need to generate a
-        // request indicating that the given credentials were invalid for login.
         if ($this->attemptShibboleth($this->getRequest(), $field, $extraConditions)) {
             return;
         }
@@ -37,51 +39,48 @@ class ShibbolethGuard extends SessionGuard
         return $this->failedShibbolethResponse();
     }
 
-    /**
-     * Attempt to authenticate using Shibboleth.
-     *
-     * @param  \Symfony\Component\HttpFoundation\Request  $request
-     * @param  string  $field
-     * @param  array  $extraConditions
-     * @return bool
-     */
     protected function attemptShibboleth(Request $request, $field, $extraConditions = [])
     {
         return $this->attempt(array_merge(
-            $this->shibbolethCredentials($request, $field), $extraConditions
+            $this->shibbolethCredentials($request, $field),
+            $extraConditions
         ));
     }
 
-    /**
-     * Get the credential array for a request.
-     *
-     * @param  \Symfony\Component\HttpFoundation\Request  $request
-     * @param  string  $field
-     * @return array
-     */
     protected function shibbolethCredentials(Request $request, $field)
     {
-        // If on local environment use .env value to mock server variable
-         if (in_array(\App::environment(), ['local', 'testing'])) {
-            $identifier = config('services.shib.default_user');
+        $identifier = null;
+
+        if (app()->environment(['local', 'testing']) && env('APP_USER')) {
+            $identifier = env('APP_USER');
         }
 
-        if ($request->server('AUTH_TYPE') == 'shibboleth') {
-            $shibboleth_uid_keys = array_values(preg_grep('/^(.+)?SHIB_UID$/', array_keys($request->server())));
-            if (count($shibboleth_uid_keys)) $identifier = $request->server($shibboleth_uid_keys[0]);
+        if ($request->server('AUTH_TYPE') === 'shibboleth') {
+            $configuredKey = config('shibboleth.identifier', 'SHIB_UID');
+            $identifier = $request->server($configuredKey);
+
+            // Fallback to auto-detecting SHIB_UID* keys if specific config fails
+            if (empty($identifier)) {
+                $pattern = '/^(.+)?' . preg_quote($configuredKey, '/') . '$/';
+                $shibboleth_uid_keys = array_values(preg_grep($pattern, array_keys($request->server())));
+
+                if (count($shibboleth_uid_keys)) {
+                    $identifier = $request->server($shibboleth_uid_keys[0]);
+                }
+            }
         }
 
         return [$field => $identifier, 'auth_type' => 'shibboleth'];
     }
 
-    /**
-     * Get the response for Shibboleth.
-     *
-     * @return \Symfony\Component\HttpFoundation\Response
-     */
     protected function failedShibbolethResponse()
     {
-        // Return a 401 response
-        abort(401, 'Invalid credentials.');
+        logger()->warning('Shibboleth login failed', [
+            'user_agent' => request()->userAgent(),
+            'ip' => request()->ip(),
+            'server' => request()->server(),
+        ]);
+
+        abort(401, 'Invalid Shibboleth credentials.');
     }
 }

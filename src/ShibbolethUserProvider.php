@@ -3,45 +3,18 @@
 namespace Dfoxx\Shibboleth;
 
 use Illuminate\Contracts\Auth\UserProvider;
-use Illuminate\Contracts\Hashing\Hasher as HasherContract;
-use Illuminate\Contracts\Auth\Authenticatable as UserContract;
+use Illuminate\Contracts\Auth\Authenticatable;
 
 class ShibbolethUserProvider implements UserProvider
 {
-    /**
-     * The hasher implementation.
-     *
-     * @var \Illuminate\Contracts\Hashing\Hasher
-     */
-    protected $hasher;
+    protected string $model;
 
-    /**
-     * The Eloquent user model.
-     *
-     * @var string
-     */
-    protected $model;
-
-    /**
-     * Create a new Shibboleth user provider.
-     *
-     * @param  \Illuminate\Contracts\Hashing\Hasher  $hasher
-     * @param  string  $model
-     * @return void
-     */
-    public function __construct(HasherContract $hasher, $model)
+    public function __construct(string $model)
     {
         $this->model = $model;
-        $this->hasher = $hasher;
     }
 
-    /**
-     * Retrieve a user by their unique identifier.
-     *
-     * @param  mixed  $identifier
-     * @return \Illuminate\Contracts\Auth\Authenticatable|null
-     */
-    public function retrieveById($identifier)
+    public function retrieveById($identifier): ?Authenticatable
     {
         $model = $this->createModel();
 
@@ -50,123 +23,61 @@ class ShibbolethUserProvider implements UserProvider
             ->first();
     }
 
-    /**
-     * Retrieve a user by their unique identifier and "remember me" token.
-     *
-     * @param  mixed   $identifier
-     * @param  string  $token
-     * @return \Illuminate\Contracts\Auth\Authenticatable|null
-     */
-    public function retrieveByToken($identifier, $token)
+    public function retrieveByToken($identifier, #[\SensitiveParameter] $token)
     {
-        // Not implemented
+        // Not used
     }
 
-    /**
-     * Update the "remember me" token for the given user in storage.
-     *
-     * @param  \Illuminate\Contracts\Auth\Authenticatable  $user
-     * @param  string  $token
-     * @return void
-     */
-    public function updateRememberToken(UserContract $user, $token)
+    public function updateRememberToken(Authenticatable $user, #[\SensitiveParameter] $token)
     {
-        // Not implemented
+        // Not used
     }
 
-    /**
-     * Retrieve a user by the given credentials.
-     *
-     * @param  array  $credentials
-     * @return \Illuminate\Contracts\Auth\Authenticatable|null
-     */
-    public function retrieveByCredentials(array $credentials)
+    public function retrieveByCredentials(#[\SensitiveParameter] array $credentials)
     {
-        if (empty($credentials)) {
-            return;
+        $usernameKey = Config::get('shibboleth.headers.username', 'REMOTE_USER');
+        $username = $credentials['username'] ?? request()->server($usernameKey);
+
+        if (!$username) {
+            return null;
         }
 
-        // First we will add each credential element to the query as a where clause.
-        // Then we can execute the query and, if we found a user, return it in a
-        // Eloquent User "model" that will be utilized by the Guard instances.
-        $query = $this->createModel()->newQuery();
+        $model = $this->createModel();
 
-        foreach ($credentials as $key => $value) {
-            $query->where($key, $value);
+        $user = $model->newQuery()->where('username', $username)->first();
+
+        if (! $user && Config::get('shibboleth.auto_create_users')) {
+            $user = new $this->model();
+
+            if (method_exists($user, 'setShibbolethAttributes')) {
+                $headers = array_merge($_SERVER, request()->server());
+                $user->setShibbolethAttributes($headers);
+                $user->save();
+            } else {
+                throw new \LogicException("User model must implement setShibbolethAttributes()");
+            }
         }
 
-        return $query->first();
+        return $user;
     }
 
-    /**
-     * Validate a user against the given credentials.
-     *
-     * @param  \Illuminate\Contracts\Auth\Authenticatable  $user
-     * @param  array  $credentials
-     * @return bool
-     */
-    public function validateCredentials(UserContract $user, array $credentials)
+    public function validateCredentials(Authenticatable $user, #[\SensitiveParameter] array $credentials)
     {
         $identifier = $user->getAuthIdentifierName();
-        return $credentials[$identifier] == $user->getAuthIdentifier() &&
-            $credentials['auth_type'] == 'shibboleth';
+
+        return $credentials[$identifier] === $user->getAuthIdentifier()
+            && $credentials['auth_type'] === 'shibboleth';
     }
 
-    /**
-     * Create a new instance of the model.
-     *
-     * @return \Illuminate\Database\Eloquent\Model
-     */
+    public function rehashPasswordIfRequired(Authenticatable $user, #[\SensitiveParameter] array $credentials, bool $force = false)
+    {
+        // Not used
+    }
+
     public function createModel()
     {
-        $class = '\\'.ltrim($this->model, '\\');
+        $class = '\\' . ltrim($this->model, '\\');
 
         return new $class;
-    }
-
-    /**
-     * Gets the hasher implementation.
-     *
-     * @return \Illuminate\Contracts\Hashing\Hasher
-     */
-    public function getHasher()
-    {
-        return $this->hasher;
-    }
-
-    /**
-     * Sets the hasher implementation.
-     *
-     * @param  \Illuminate\Contracts\Hashing\Hasher  $hasher
-     * @return $this
-     */
-    public function setHasher(HasherContract $hasher)
-    {
-        $this->hasher = $hasher;
-        return $this;
-    }
-
-
-    /**
-     * Gets the name of the Eloquent user model.
-     *
-     * @return string
-     */
-    public function getModel()
-    {
-        return $this->model;
-    }
-
-    /**
-     * Sets the name of the Eloquent user model.
-     *
-     * @param  string  $model
-     * @return $this
-     */
-    public function setModel($model)
-    {
-        $this->model = $model;
-
-        return $this;
     }
 }

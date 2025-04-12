@@ -2,37 +2,39 @@
 
 namespace Dfoxx\Shibboleth;
 
-use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Auth;
+use Spatie\LaravelPackageTools\Package;
+use Spatie\LaravelPackageTools\PackageServiceProvider;
 
-class ShibbolethServiceProvider extends ServiceProvider
+class ShibbolethServiceProvider extends PackageServiceProvider
 {
-    /**
-     * Perform post-registration booting of services.
-     *
-     * @return void
-     */
     public function boot()
     {
-        $this->loadMigrationsFrom(__DIR__.'/migrations');
-        $this->app['auth']->provider('shibboleth', function ($app, array $config) {
-            $model = $app['config']['auth.providers.users.model'];
-            return new ShibbolethUserProvider($app['hash'], $model);
+        Auth::extend('shibboleth-session', function ($app, $name, array $config) {
+            $provider = Auth::createUserProvider($config['provider']);
+
+            return new ShibbolethGuard(
+                $name,
+                $provider,
+                $app['session.store'],
+                $app['request'],
+                $app['events']
+            );
         });
 
-        $this->app['auth']->extend('shibboleth', function ($app, $name, array $config) {
-            $model = $app['config']['auth.providers.users.model'];
-            $provider = new ShibbolethUserProvider($app['hash'], $model);
-            return new ShibbolethGuard($name, $provider, $app['session.store'], $app['request']);
+        Auth::provider('shibboleth', function ($app, array $config) {
+            return new ShibbolethUserProvider($config['model']);
         });
     }
 
-    /**
-     * Register any package services.
-     *
-     * @return void
-     */
-    public function register()
+    public function configurePackage(Package $package): void
     {
-        //
+        $package
+            ->name('laravel-shibboleth')
+            ->hasConfigFile('shibboleth')
+            ->hasMigrations([
+                'users_shibboleth_data_table',
+                'users_table',
+            ]);
     }
 }
