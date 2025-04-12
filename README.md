@@ -23,9 +23,11 @@ composer require dfoxx/laravel-shibboleth
 
 Update your project `.env`:
 
-| `APP_USER` | Optional for local development to bypass headers and log in this user |
-| `APP_USER_FIELD` | Shibboleth header used to uniquely identify the user (e.g. SHIB_UID, SHIB_EPPN) |
-| `APP_USER_COLUMN` | User model column to use for authentication (e.g. uid, unity_id, username) |
+| `.env` key        | Description                                                                     |
+| ----------------- | ------------------------------------------------------------------------------- |
+| `APP_USER`        | Optional for local development to bypass headers and log in this user           |
+| `APP_USER_FIELD`  | Shibboleth header used to uniquely identify the user (e.g. SHIB_UID, SHIB_EPPN) |
+| `APP_USER_COLUMN` | User model column to use for authentication (e.g. uid, unity_id, username)      |
 
 Examples:
 
