@@ -6,12 +6,9 @@ An opinionated Shibboleth authentication package for Laravel. There is a middlew
 
 ## Features
 
--   Route-level middleware (`shibboleth.auth`) for lightweight Shibboleth enforcement
--   Custom Laravel guard (`auth:shibboleth`) for seamless integration with Laravel’s auth system
--   Configurable Shibboleth header and field mappings via `config/shibboleth.php`
--   Auto-create users from Shibboleth headers based on configurable identifiers
+-   Route-level middleware (`shibboleth`) for lightweight Shibboleth enforcement
+-   Laravel guard (`auth:shibboleth`) for seamless integration with Laravel’s auth system
 -   Store extended identity metadata in a dedicated `users_shibboleth` table
--   Promotable attributes like `uid` and `eppn` for fast indexed lookups
 
 ## Installation
 
@@ -19,7 +16,7 @@ An opinionated Shibboleth authentication package for Laravel. There is a middlew
 composer require dfoxx/laravel-shibboleth
 ```
 
-**REQUIRED** Update `public/.htaccess`:
+Update `public/.htaccess`:
 
 ```
 <IfModule mod_shib>
@@ -29,35 +26,7 @@ composer require dfoxx/laravel-shibboleth
 </IfModule>
 ```
 
-## Configuration
-
-**REQUIRED** Update your project `.env`:
-
-```
-SHIB_USER=dfsterli
-SHIB_MIDDLEWARE=shibboleth
-SHIB_AUTO_CREATE_USERS=false
-SHIB_SERVER_KEY=SHIB_UID
-SHIB_IDENTIFIER_KEY=unity_id
-```
-
-| `.env` key               | Description                                                                     |
-| :----------------------- | :------------------------------------------------------------------------------ |
-| `SHIB_USER`              | Optional for local development to bypass headers and log in this user           |
-| `SHIB_MIDDLEWARE`        | Set your own custom name for the middleware                                     |
-| `SHIB_AUTO_CREATE_USERS` | Defaults to false, will not attempt to create users                             |
-| `SHIB_SERVER_KEY`        | Shibboleth header used to uniquely identify the user (e.g. SHIB_UID, SHIB_EPPN) |
-| `SHIB_IDENTIFIER_KEY`    | User model column to use for authentication (e.g. uid, unity_id, username)      |
-
-Or publish the config file `config/shibboleth.php` and edit the values you need:
-
-```bash
-php artisan vendor:publish --tag=laravel-shibboleth-config
-```
-
-## Traits
-
-**REQUIRED** Update User model with this trait to use `SHIB_IDENTIFIER_KEY` as the column to store the Shibboleth identifier
+Update User model with this trait to use `SHIB_IDENTIFIER_KEY` as the column to store the Shibboleth identifier
 
 ```php
 use Dfoxx\Shibboleth\HasShibbolethIdentifier;
@@ -68,7 +37,52 @@ class User extends Authenticatable
 }
 ```
 
-If you decide to store the Shibboleth data (migration is provided) you can use this trait
+## Middleware
+
+Routes:
+
+```php
+// unprotected routes
+
+Route::middleware(['shibboleth'])->group(function () {
+    // protected routes
+});
+```
+
+## Guard `auth:shibboleth`
+
+Update `config/auth.php`:
+
+```php
+'guards' => [
+    'shibboleth' => [
+        'driver' => 'shibboleth-session',
+        'provider' => 'shibboleth',
+    ],
+],
+```
+
+Routes:
+
+```php
+// unprotected routes
+
+Route::middleware(['auth:shibboleth'])->group(function () {
+    // protected routes
+});
+```
+
+## Shibboleth Data
+
+You can opt to store the Shibboleth data in it's own model `Shibboleth.php`
+
+You can copy the migrations over and edit them as you see fit:
+
+```bash
+php artisan vendor:publish --tag=laravel-shibboleth-migrations
+```
+
+Then add the trait to the User model:
 
 ```php
 use Dfoxx\Shibboleth\HasShibbolethData;
@@ -79,52 +93,27 @@ class User extends Authenticatable
 }
 ```
 
-Access Shibboleth data:
+And then access Shibboleth data:
 
 ```php
 $user->shib('eppn');
 $user->shibboleth->attributes['eppn'];
 ```
 
-## Migrations
+## Configuration
 
-This package provides two optional migrations. You probably don't need them.
+| `.env` key               | Description                                                                     |
+| :----------------------- | :------------------------------------------------------------------------------ |
+| `SHIB_USER`              | Optional for local development to bypass headers and log in this user           |
+| `SHIB_MIDDLEWARE`        | Set your own custom name for the middleware                                     |
+| `SHIB_AUTO_CREATE_USERS` | Defaults to false, will not attempt to create users                             |
+| `SHIB_SERVER_KEY`        | Shibboleth header used to uniquely identify the user (e.g. SHIB_UID, SHIB_EPPN) |
+| `SHIB_IDENTIFIER_KEY`    | User model column to use for authentication (e.g. uid, unity_id, username)      |
+
+You can publish the config file `config/shibboleth.php` to edit the map for the Shibboleth model:
 
 ```bash
-php artisan vendor:publish --tag=laravel-shibboleth-migrations
-```
-
-## Middleware `shibboleth`
-
-This middleware checks for a Shibboleth-authenticated user via PHP `$_SERVER` variables.
-
-Protect routes:
-
-```php
-Route::middleware(['shibboleth'])->group(function () {
-    Route::get('/dashboard', fn() => view('dashboard'));
-});
-```
-
-## Guard `auth:shibboleth`
-
-In `config/auth.php`:
-
-```php
-'guards' => [
-    'shibboleth' => [
-        'driver' => 'shibboleth-session',
-        'provider' => 'users',
-    ],
-],
-```
-
-Then protect routes:
-
-```php
-Route::middleware(['auth:shibboleth'])->group(function () {
-    Route::get('/dashboard', fn() => view('dashboard'));
-});
+php artisan vendor:publish --tag=laravel-shibboleth-config
 ```
 
 ## License
