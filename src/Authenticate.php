@@ -14,24 +14,23 @@ class Authenticate
             return $next($request);
         }
 
-        $identifierKey = config('shibboleth.identifier', 'SHIB_UID');
-        $identifierColumn = config('shibboleth.identifier_column', 'uid');
-        $identifierValue = $request->server($identifierKey);
+        $config = config('shibboleth');
+        $identifier = $request->server($config['server_key']);
 
-        if (! $identifierValue) {
+        if (! $identifier) {
             abort(401, 'Shibboleth identifier missing.');
         }
 
-        $modelClass = config('auth.providers.users.model');
-        $user = $modelClass::where($identifierColumn, $identifierValue)->first();
+        $model = config('auth.providers.users.model');
+        $user = $model::where($config['identifier_key'], $identifier)->first();
 
-        if (! $user && config('shibboleth.auto_create_users')) {
-            $user = new $modelClass;
-            if (method_exists($user, 'setShibbolethAttributes')) {
-                $user->setShibbolethAttributes($request->server());
+        if (! $user && $config['auto_create_users']) {
+            $user = new $model;
+            if (method_exists($user, 'mapShibbolethData')) {
+                $user->mapShibbolethData($request->server());
                 $user->save();
             } else {
-                abort(403, 'User model does not support Shibboleth creation.');
+                abort(403, 'Shibboleth auto create user turned off.');
             }
         }
 

@@ -2,6 +2,8 @@
 
 return [
 
+    'user' => env('SHIB_USER', ''),
+
     /*
     |--------------------------------------------------------------------------
     | Auto-create Users
@@ -11,20 +13,19 @@ return [
     | if they do not already exist in the database.
     |
     */
-    'auto_create_users' => true,
+
+    'middleware' => env('SHIB_MIDDLEWARE', 'shibboleth'),
 
     /*
     |--------------------------------------------------------------------------
-    | Header Mapping
+    | Auto-create Users
     |--------------------------------------------------------------------------
     |
-    | These map Shibboleth headers to user model attributes.
+    | If true, users will be automatically created from Shibboleth headers
+    | if they do not already exist in the database.
     |
     */
-    'headers' => [
-        'username' => 'REMOTE_USER',
-        'email'    => 'SHIB_MAIL',
-    ],
+    'auto_create_users' =>  env('SHIB_AUTO_CREATE_USERS', true),
 
     /*
     |--------------------------------------------------------------------------
@@ -36,7 +37,7 @@ return [
     | matching key like SHIB_UID.
     |
     */
-    'identifier' => env('APP_USER_FIELD', 'SHIB_UID'),
+    'server_key' => env('SHIB_SERVER_KEY', 'SHIB_UID'),
 
     /*
     |--------------------------------------------------------------------------
@@ -47,31 +48,33 @@ return [
     | 'uid', 'unity_id', 'username', etc.
     |
     */
-    'identifier_column' => env('APP_USER_COLUMN', 'unity_id'),
+    'identifier_key' => env('SHIB_IDENTIFIER_KEY', 'unity_id'),
 
     /*
     |--------------------------------------------------------------------------
-    | Shibboleth Attribute Fields
+    | Shibboleth Attribute Map
     |--------------------------------------------------------------------------
     |
     | These are the Shibboleth attributes to store in the linked metadata table.
     |
     */
-    'fields' => [
+    'map' => [
         'uid'                  => 'SHIB_UID',
         'eptid'                => 'SHIB_EPTID',
         'eppn'                 => 'SHIB_EPPN',
         'cpid'                 => 'SHIB_CPID',
-        'given_name'           => 'SHIB_GIVENNAME',
-        'surname'              => 'SHIB_SN',
+        'email'                => 'SHIB_MAIL',
+        'first_name'           => 'SHIB_GIVENNAME',
+        'last_name'            => 'SHIB_SN',
         'display_name'         => 'SHIB_DISPLAYNAME',
+        'primary'              => 'SHIB_PRIMARY',
         'unaffiliation'        => 'SHIB_UNAFFILIATION',
         'affiliation'          => 'SHIB_AFFILIATION',
         'is_2fa_authenticated' => 'SHIB_2FAUTHED',
         'is_2fa_enrolled'      => 'SHIB_2FENROLL',
-        'authn_instant'        => 'Shib-Authentication-Instant',
-        'authn_method'         => 'Shib-Authentication-Method',
-        'authn_context'        => 'Shib-AuthnContext-Class',
+        'auth_instant'         => 'Shib-Authentication-Instant',
+        'auth_method'          => 'Shib-Authentication-Method',
+        'auth_context'         => 'Shib-AuthnContext-Class',
         'identity_provider'    => 'Shib-Identity-Provider',
         'session_id'           => 'Shib-Session-ID',
         'session_index'        => 'Shib-Session-Index',
@@ -79,6 +82,7 @@ return [
         'session_inactivity'   => 'Shib-Session-Inactivity',
         'application_id'       => 'Shib-Application-ID',
         'handler'              => 'Shib-Handler',
+        'member_of'            => 'SHIB_MEMBEROF'
     ],
 
     /*

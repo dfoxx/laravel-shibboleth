@@ -24,7 +24,7 @@ composer require dfoxx/laravel-shibboleth
 Update your project `.env`:
 
 | `.env` key        | Description                                                                     |
-| ----------------- | ------------------------------------------------------------------------------- |
+| :---------------- | :------------------------------------------------------------------------------ |
 | `APP_USER`        | Optional for local development to bypass headers and log in this user           |
 | `APP_USER_FIELD`  | Shibboleth header used to uniquely identify the user (e.g. SHIB_UID, SHIB_EPPN) |
 | `APP_USER_COLUMN` | User model column to use for authentication (e.g. uid, unity_id, username)      |
@@ -82,20 +82,14 @@ This package provides two optional migrations. You probably don't need them.
 php artisan vendor:publish --tag=laravel-shibboleth-migrations
 ```
 
-## Middleware `shibboleth.auth`
+## Middleware `shibboleth`
 
 This middleware checks for a Shibboleth-authenticated user via PHP `$_SERVER` variables.
-
-Register the middleware in your `AppServiceProvider` or your own service provider:
-
-```php
-$this->app['router']->aliasMiddleware('shibboleth.auth', \Dfoxx\Shibboleth\Authenticate::class);
-```
 
 Protect routes:
 
 ```php
-Route::middleware(['shibboleth.auth'])->group(function () {
+Route::middleware(['shibboleth'])->group(function () {
     Route::get('/dashboard', fn() => view('dashboard'));
 });
 ```

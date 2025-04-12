@@ -18,11 +18,12 @@ return new class extends Migration
             $table->string('identity_provider')->nullable()->index();
             $table->longText('data')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('users_shibboleth_data');
+        Schema::dropIfExists('users_shibboleth');
     }
 };

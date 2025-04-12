@@ -21,6 +21,7 @@ class CreateUsersTable extends Migration
             $table->string('auth_type')->default('shibboleth');
             $table->rememberToken();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

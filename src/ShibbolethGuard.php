@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Auth\SessionGuard;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Contracts\Auth\UserProvider;
-use Illuminate\Contracts\Events\Dispatcher;
 
 class ShibbolethGuard extends SessionGuard
 {
@@ -14,54 +13,60 @@ class ShibbolethGuard extends SessionGuard
         string $name,
         UserProvider $provider,
         Session $session,
-        Request $request,
-        Dispatcher $events = null
+        Request $request
     ) {
         parent::__construct($name, $provider, $session, $request);
-
-        if ($events) {
-            $this->setDispatcher($events);
-        }
 
         $this->setRequest($request);
     }
 
-    public function shibboleth($field = 'username', $extraConditions = [])
+    public function check()
     {
-        if ($this->check()) {
+        // If already authenticated, do nothing extra
+        if (parent::check()) {
+            return true;
+        }
+
+        // Try to log in via Shibboleth headers
+        $identifier_key = config('shibboleth.identifier_key');
+
+        // Attempt login
+        $this->shibboleth($identifier_key);
+
+        // Return the result of check() again after the attempt
+        return parent::check();
+    }
+
+    public function shibboleth($identifier_key)
+    {
+        $request = $this->getRequest();
+
+        if ($this->attemptShibboleth($request, $identifier_key)) {
             return;
         }
 
-        if ($this->attemptShibboleth($this->getRequest(), $field, $extraConditions)) {
-            return;
-        }
-
-        return $this->failedShibbolethResponse();
+        return $this->failedShibbolethResponse($request);
     }
 
-    protected function attemptShibboleth(Request $request, $field, $extraConditions = [])
+    protected function attemptShibboleth(Request $request, $identifier_key)
     {
-        return $this->attempt(array_merge(
-            $this->shibbolethCredentials($request, $field),
-            $extraConditions
-        ));
+        return $this->attempt($this->shibbolethCredentials($request, $identifier_key));
     }
 
-    protected function shibbolethCredentials(Request $request, $field)
+    protected function shibbolethCredentials(Request $request, $identifier_key)
     {
         $identifier = null;
 
-        if (app()->environment(['local', 'testing']) && env('APP_USER')) {
-            $identifier = env('APP_USER');
+        if (app()->environment(['local', 'testing']) && config('shibboleth.user')) {
+            $identifier = config('shibboleth.user');
         }
 
         if ($request->server('AUTH_TYPE') === 'shibboleth') {
-            $configuredKey = config('shibboleth.identifier', 'SHIB_UID');
-            $identifier = $request->server($configuredKey);
+            $identifier = $request->server($identifier_key);
 
             // Fallback to auto-detecting SHIB_UID* keys if specific config fails
             if (empty($identifier)) {
-                $pattern = '/^(.+)?' . preg_quote($configuredKey, '/') . '$/';
+                $pattern = '/^(.+)?' . preg_quote($identifier_key, '/') . '$/';
                 $shibboleth_uid_keys = array_values(preg_grep($pattern, array_keys($request->server())));
 
                 if (count($shibboleth_uid_keys)) {
@@ -70,15 +75,15 @@ class ShibbolethGuard extends SessionGuard
             }
         }
 
-        return [$field => $identifier, 'auth_type' => 'shibboleth'];
+        return [$identifier_key => $identifier, 'auth_type' => 'shibboleth'];
     }
 
-    protected function failedShibbolethResponse()
+    protected function failedShibbolethResponse(Request $request)
     {
         logger()->warning('Shibboleth login failed', [
-            'user_agent' => request()->userAgent(),
-            'ip' => request()->ip(),
-            'server' => request()->server(),
+            'user_agent' => $request->userAgent(),
+            'ip' => $request->ip(),
+            'server' => $request->server(),
         ]);
 
         abort(401, 'Invalid Shibboleth credentials.');

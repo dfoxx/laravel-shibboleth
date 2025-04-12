@@ -6,7 +6,7 @@ trait HasShibbolethIdentifier
 {
     public function getAuthIdentifierName(): string
     {
-        return config('shibboleth.identifier_column');
+        return config('shibboleth.identifier_key');
     }
 
     public function getAuthIdentifier(): mixed

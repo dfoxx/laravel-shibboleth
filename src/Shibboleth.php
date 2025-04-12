@@ -32,11 +32,11 @@ class Shibboleth extends Model
     protected static function booted()
     {
         static::saving(function ($model) {
-            if (!is_array($model->attributes['attributes'] ?? null)) {
+            if (!is_array($model->data ?? null)) {
                 return;
             }
 
-            $attributes = $model->attributes['attributes'];
+            $attributes = $model->data;
             $promoted = config('shibboleth.promoted_fields', []);
 
             foreach ($promoted as $key) {
@@ -49,7 +49,7 @@ class Shibboleth extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(config('auth.providers.users.model'));
+        return $this->belongsTo(config('auth.providers.users.model'), 'user_id');
     }
 
     public function scopeWhereEppn($query, string $eppn)

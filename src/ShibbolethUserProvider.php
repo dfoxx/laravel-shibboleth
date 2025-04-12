@@ -35,26 +35,24 @@ class ShibbolethUserProvider implements UserProvider
 
     public function retrieveByCredentials(#[\SensitiveParameter] array $credentials)
     {
-        $usernameKey = Config::get('shibboleth.headers.username', 'REMOTE_USER');
-        $username = $credentials['username'] ?? request()->server($usernameKey);
+        $identifier = $_SERVER[config('shibboleth.identifier')];
 
-        if (!$username) {
+        if (!$identifier) {
             return null;
         }
 
         $model = $this->createModel();
 
-        $user = $model->newQuery()->where('username', $username)->first();
+        $user = $model->newQuery()->where(config('shibboleth.identifier'), $identifier)->first();
 
-        if (! $user && Config::get('shibboleth.auto_create_users')) {
+        if (! $user && config('shibboleth.auto_create_users')) {
             $user = new $this->model();
 
-            if (method_exists($user, 'setShibbolethAttributes')) {
-                $headers = array_merge($_SERVER, request()->server());
-                $user->setShibbolethAttributes($headers);
+            if (method_exists($user, 'mapShibbolethData')) {
+                $user->mapShibbolethData($_SERVER);
                 $user->save();
             } else {
-                throw new \LogicException("User model must implement setShibbolethAttributes()");
+                throw new \LogicException("User model must implement mapShibbolethData()");
             }
         }
 
