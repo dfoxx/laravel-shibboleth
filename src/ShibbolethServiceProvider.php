@@ -36,6 +36,7 @@ class ShibbolethServiceProvider extends PackageServiceProvider
             ->hasMigrations([
                 'users_shibboleth_data_table',
                 'users_table',
-            ]);
+            ])
+            ->hasRoute('web');
     }
 }

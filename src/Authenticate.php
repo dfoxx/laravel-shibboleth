@@ -15,6 +15,13 @@ class Authenticate
         }
 
         $config = config('shibboleth');
+
+        $identifier = null;
+
+        if (app()->environment(['local', 'testing']) && $config['user']) {
+            $identifier = $config['user'];
+        }
+
         $identifier = $request->server($config['server_key']);
 
         if (! $identifier) {

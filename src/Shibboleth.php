@@ -4,9 +4,12 @@ namespace Dfoxx\Shibboleth;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Shibboleth extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'users_shibboleth';
 
     protected $fillable = [
@@ -17,12 +20,11 @@ class Shibboleth extends Model
         'cpid',
         'session_index',
         'identity_provider',
-        'attributes',
+        'data',
     ];
 
-
     protected $casts = [
-        'attributes' => 'array',
+        'data' => 'array',
     ];
 
     protected $primaryKey = 'user_id';
@@ -36,12 +38,12 @@ class Shibboleth extends Model
                 return;
             }
 
-            $attributes = $model->data;
+            $data = $model->data;
             $promoted = config('shibboleth.promoted_fields', []);
 
             foreach ($promoted as $key) {
-                if (isset($attributes[$key])) {
-                    $model->setAttribute($key, $attributes[$key]);
+                if (isset($data[$key])) {
+                    $model->setAttribute($key, $data[$key]);
                 }
             }
         });
@@ -50,25 +52,5 @@ class Shibboleth extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(config('auth.providers.users.model'), 'user_id');
-    }
-
-    public function scopeWhereEppn($query, string $eppn)
-    {
-        return $query->where('eppn', $eppn);
-    }
-
-    public function scopeWhereUid($query, string $uid)
-    {
-        return $query->where('uid', $uid);
-    }
-
-    public function scopeWhereSessionIndex($query, string $sessionIndex)
-    {
-        return $query->where('session_index', $sessionIndex);
-    }
-
-    public function scopeWhereIdentityProvider($query, string $idp)
-    {
-        return $query->where('identity_provider', $idp);
     }
 }
