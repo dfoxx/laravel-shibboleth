@@ -2,6 +2,7 @@
 
 namespace Dfoxx\Shibboleth;
 
+use Illuminate\Support\Facades\Auth;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
@@ -11,9 +12,7 @@ class ShibbolethServiceProvider extends PackageServiceProvider
     {
         $this->app['router']->aliasMiddleware(config('shibboleth.middleware'), Authenticate::class);
 
-        $this->app['auth']->provider('shibboleth', function ($app, array $config) {
-            return new ShibbolethUserProvider($config['model']);
-        });
+        $this->app['auth']->provider('shibboleth', fn() => new ShibbolethUserProvider());
 
         $this->app['auth']->extend('shibboleth-session', function ($app, $name, array $config) {
             $provider = Auth::createUserProvider($config['provider']);

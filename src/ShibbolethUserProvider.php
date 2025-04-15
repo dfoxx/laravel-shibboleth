@@ -8,10 +8,12 @@ use Illuminate\Contracts\Auth\Authenticatable;
 class ShibbolethUserProvider implements UserProvider
 {
     protected string $model;
+    protected string $identifier_key;
 
-    public function __construct(string $model)
+    public function __construct()
     {
-        $this->model = $model;
+        $this->model = config('auth.providers.users.model');
+        $this->identifier_key = config('shibboleth.identifier_key');
     }
 
     public function retrieveById($identifier): ?Authenticatable
@@ -35,7 +37,7 @@ class ShibbolethUserProvider implements UserProvider
 
     public function retrieveByCredentials(#[\SensitiveParameter] array $credentials)
     {
-        $identifier = $_SERVER[config('shibboleth.identifier')];
+        $identifier = $_SERVER[$this->identifier_key];
 
         if (!$identifier) {
             return null;
@@ -43,17 +45,18 @@ class ShibbolethUserProvider implements UserProvider
 
         $model = $this->createModel();
 
-        $user = $model->newQuery()->where(config('shibboleth.identifier'), $identifier)->first();
+        $user = $model->newQuery()->where($this->identifier_key, $identifier)->first();
 
         if (! $user && config('shibboleth.auto_create_users')) {
             $user = new $this->model();
 
+            // map basic headers?
+
             if (method_exists($user, 'mapShibbolethData')) {
                 $user->mapShibbolethData($_SERVER);
-                $user->save();
-            } else {
-                throw new \LogicException("User model must implement mapShibbolethData()");
             }
+
+            $user->save();
         }
 
         return $user;
@@ -61,10 +64,7 @@ class ShibbolethUserProvider implements UserProvider
 
     public function validateCredentials(Authenticatable $user, #[\SensitiveParameter] array $credentials)
     {
-        $identifier = $user->getAuthIdentifierName();
-
-        return $credentials[$identifier] === $user->getAuthIdentifier()
-            && $credentials['auth_type'] === 'shibboleth';
+        return $credentials[$this->identifier_key] === $user->getAuthIdentifier();
     }
 
     public function rehashPasswordIfRequired(Authenticatable $user, #[\SensitiveParameter] array $credentials, bool $force = false)

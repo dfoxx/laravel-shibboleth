@@ -18,7 +18,7 @@ class Authenticate
 
         $identifier = null;
 
-        if (app()->environment(['local', 'testing']) && $config['user']) {
+        if (app()->environment('local') && $config['user']) {
             $identifier = $config['user'];
         }
 

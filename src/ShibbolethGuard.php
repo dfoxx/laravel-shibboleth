@@ -57,7 +57,7 @@ class ShibbolethGuard extends SessionGuard
     {
         $identifier = null;
 
-        if (app()->environment(['local', 'testing']) && config('shibboleth.user')) {
+        if (app()->environment('local') && config('shibboleth.user')) {
             $identifier = config('shibboleth.user');
         }
 
